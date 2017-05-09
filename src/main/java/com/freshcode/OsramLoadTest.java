@@ -5,6 +5,7 @@ import org.apache.http.client.config.*;
 import org.apache.http.client.methods.*;
 import org.apache.http.entity.*;
 import org.apache.http.impl.client.*;
+import org.apache.http.impl.conn.*;
 import org.apache.http.util.*;
 
 import java.io.*;
@@ -121,19 +122,25 @@ public class OsramLoadTest {
         Logger logger = Logger.getLogger("LoadTest");
         LogManager.getLogManager().readConfiguration(this.getClass().getClassLoader().getResourceAsStream("log.properties"));
         String host = getProperty("HOST", "esc-lightify.com");
-        int threadsNumber = getProperty("THREADS", 10);
+        int threadsNumber = getProperty("THREADS", 1000);
         int requestsPerThread = getProperty("REQUESTS", 0);
 
         Statistics statistics = new Statistics();
         String url = "https://" + host + "/api/vote";
         logger.info("Starting vote load test on URL " + url);
 
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        // Increase max total connection to 200
+        cm.setMaxTotal(10000);
+        // Increase default max connection per route to 20
+        cm.setDefaultMaxPerRoute(10000);
         RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(5 * 1000)
                 .setConnectionRequestTimeout(5 * 1000)
                 .build();
         final CloseableHttpClient httpclient = HttpClients.custom()
                 .setDefaultRequestConfig(requestConfig)
+                .setConnectionManager(cm)
                 .build();
         List<Thread> threads = new ArrayList<>();
         long start = System.currentTimeMillis();
